@@ -6,7 +6,7 @@ class Api::V1::PropertiesController < ApplicationController
 
   def show
     property = find_property
-    if find_property
+    if property
       render json: property
     else
       render json: {error: "No property with id #{params[:id]}"}
@@ -40,34 +40,66 @@ class Api::V1::PropertiesController < ApplicationController
   end
 
   def update
-    # Only value update
-    property = find_property
-    if property
-      if property.update(value: properties_params[:value])
-        render json: {message: "Property's value updated successfully!"}
+    changed = []
+    unchanged = []
+    # Verify existence of client
+    if find_client
+      for p in params[:properties] do
+        # Verify existence of property
+        property = Property.where(name: p["name"], client_id: params[:client_id])
+        if property != []
+          # Try updating property
+          if property.update(value: p["value"])
+            changed.push(p)
+          else
+            unchanged.push(p)
+          end
+        else
+          unchanged.push(p)
+        end
+      end
+      if unchanged == []
+        render json: {"message": "Properties updated successfully!",
+                      "properties": changed}
       else
-        render json: {error: property.errors.objects.first.full_message}
+        render json: {"message": "These properties could not be updated because they do not exist.",
+                      "properties": unchanged}
       end
     else
-      render json: {error: "No property with id #{params[:id]}"}
+      render json: {error: "No client with id #{params[:client_id]}"}
     end
   end
 
   def destroy
-    # Destroy specific property by id
-    property = find_property
-    if property
-      if property.destroy
-        render json: {message: "Property deleted succesfully!"}
+    deleted = []
+    not_deleted = []
+    if find_client
+      for p in params[:properties] do
+        # Verify existence of property
+        property = Property.where(name: p["name"], client_id: params[:client_id])
+        if property != []
+          # Try deleting it
+          if property[0].destroy
+            deleted.push(p)
+          else
+            not_deleted.push(p)
+          end
+        else
+          not_deleted.push(p)
+        end
+      end
+      if not_deleted == []
+        render json: {"message": "Properties deleted successfully!",
+                      "properties": deleted}
       else
-        render json: {error: property.errors.objects.first.full_message}
+        render json: {"message": "These properties could not be deleted because they do not exist.",
+                      "properties": not_deleted}
       end
     else
-      render json: {error: "No property with id #{params[:id]}"}
+      render json: {error: "No client with id #{params[:client_id]}"}
     end
   end
-
-
+  
 private
 
   def properties_params
@@ -79,7 +111,7 @@ private
   end
 
   def find_client
-    Client.find_by(id: properties_params[:client_id])
+    Client.find_by(id: params[:client_id])
   end
 
   def find_property
