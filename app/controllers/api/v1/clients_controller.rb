@@ -20,7 +20,7 @@ class Api::V1::ClientsController < ApplicationController
 
   def create
     client = Client.new(name: client_params[:name])
-      
+    # Try to save client
     if client.save
       render json: client
     else
@@ -51,7 +51,9 @@ class Api::V1::ClientsController < ApplicationController
 
   def update
     client = find_client
+    # Verify client's existence
     if client
+      # Try to update
       if client.update(name: client_params[:name])
         render json: {message: "Client updated successfully!"}
       else
@@ -64,7 +66,9 @@ class Api::V1::ClientsController < ApplicationController
 
   def destroy
     client = find_client
+    # Verify client's existence
     if client
+      # Try to delete
       if client.destroy
         render json: {message: "Client deleted successfully"}
       else

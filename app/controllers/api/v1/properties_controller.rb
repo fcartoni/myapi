@@ -6,6 +6,7 @@ class Api::V1::PropertiesController < ApplicationController
 
   def show
     property = find_property
+    # Verify property's existence
     if property
       render json: property
     else
