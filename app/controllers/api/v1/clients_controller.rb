@@ -29,7 +29,7 @@ class Api::V1::ClientsController < ApplicationController
 
   end 
 
-  def show
+  def show #MOSTRAR SUS PROPERTIES
     client = Client.select(:id, :name).find_by(id: params[:id])
     if client
       render json: client
@@ -55,7 +55,7 @@ class Api::V1::ClientsController < ApplicationController
     client = find_client
     if client
       if client.destroy
-        render json: {message: "Client deleted succesfully"}
+        render json: {message: "Client deleted successfully"}
       else
         render json: {error: client.errors.objects.first.full_message}
       end
