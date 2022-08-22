@@ -30,10 +30,19 @@ class Api::V1::ClientsController < ApplicationController
   end 
 
   def show 
-    client = Client.select(:id, :name).find_by(id: params[:id])
-    properties = Property.select(:id, :name, :value).where(client_id: params[:id])
-    if client
-      response = {"id": params[:id], "name": client["name"], "properties": properties}
+    # Query to find properties of the client
+    info = Property.joins(:client)
+                      .select("client.name as client_name, properties.id, properties.name, properties.value")
+                      .where('client.id' => params[:id]) 
+    if info
+      # Build properties array
+      properties = []
+      for property in info do
+        puts property
+        properties.push({"id": property["id"], "name": property["name"], "value": property["value"]})
+      end
+      # Build response
+      response = {"id": params[:id], "name": info[0]["client_name"], "properties": properties}
       render json: response
     else
       render json: {error: "No client with id #{params[:id]}"}
