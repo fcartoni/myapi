@@ -3,15 +3,15 @@ class Api::V1::ClientsController < ApplicationController
     clients = Client.all
     response = []
     # For each client find their properties
-    for c in clients do
-      properties = Property.select(:name, :value).where(client_id: c.id)
+    for client in clients do
+      properties = Property.select(:name, :value).where(client_id: client.id)
       properties_noid = []
       # Take out property's id to match doc
-      for p in properties do
-        properties_noid.push({"name": p["name"], "value": p["value"]})
+      for property in properties do
+        properties_noid.push({"name": property["name"], "value": property["value"]})
       end
       # Build up each client and push to response
-      client = {"id": c.id, "name": c.name, "properties": properties_noid}
+      client = {"id": client.id, "name": client.name, "properties": properties_noid}
       response.push(client)
     end
     # Return response

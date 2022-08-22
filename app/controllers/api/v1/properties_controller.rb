@@ -17,17 +17,22 @@ class Api::V1::PropertiesController < ApplicationController
   def create
     saved = []
     not_saved = []
-    for p in params[:properties] do
-      property = Property.new(name: p["name"],
-                              value: p["value"],
+    # Create and save each property
+    for property in params[:properties] do
+      # Create property
+      new_property = Property.new(name: property["name"],
+                              value: property["value"],
                               client_id: properties_params[:client_id])   
-      if property.save
-        saved.push(p)
+      # Try to save property
+      if new_property.save
+        saved.push(property)
+      # Verify client's existence
       elsif not find_client
-        render json: {error: property.errors.objects.first.full_message }
+        render json: {error: new_property.errors.objects.first.full_message }
         return
+      # Error saving property: duplicates, etc.
       else 
-        errors = {p["name"] => property.errors.objects.first.full_message }
+        errors = {property["name"] => new_property.errors.objects.first.full_message }
         not_saved.push(errors)
       end
     end
@@ -35,7 +40,8 @@ class Api::V1::PropertiesController < ApplicationController
     if not_saved == []
       render json: {"properties": saved}
     else
-      render json: {error: not_saved}
+      render json:{"error": not_saved,
+                    "saved properties": saved}
     end
   end
 
@@ -44,26 +50,27 @@ class Api::V1::PropertiesController < ApplicationController
     unchanged = []
     # Verify existence of client
     if find_client
-      for p in params[:properties] do
+      for property in params[:properties] do
         # Verify existence of property
-        property = Property.where(name: p["name"], client_id: params[:client_id])
-        if property != []
+        found_property = Property.where(name: property["name"], client_id: params[:client_id])
+        if found_property != []
           # Try updating property
-          if property.update(value: p["value"])
-            changed.push(p)
+          if found_property.update(value: property["value"])
+            changed.push(property)
           else
-            unchanged.push(p)
+            unchanged.push(property)
           end
         else
-          unchanged.push(p)
+          unchanged.push(property)
         end
       end
       if unchanged == []
         render json: {"message": "Properties updated successfully!",
                       "properties": changed}
       else
-        render json: {"message": "These properties could not be updated because they do not exist.",
-                      "properties": unchanged}
+        render json: {"error": "These properties could not be updated because they do not exist.",
+                      "properties": unchanged,
+                    "updated properties": changed}
       end
     else
       render json: {error: "No client with id #{params[:client_id]}"}
@@ -73,27 +80,29 @@ class Api::V1::PropertiesController < ApplicationController
   def destroy
     deleted = []
     not_deleted = []
+    # Verify existence of client
     if find_client
-      for p in params[:properties] do
+      for property in params[:properties] do
         # Verify existence of property
-        property = Property.where(name: p["name"], client_id: params[:client_id])
-        if property != []
+        found_property = Property.where(name: property["name"], client_id: params[:client_id])
+        if found_property != []
           # Try deleting it
-          if property[0].destroy
-            deleted.push(p)
+          if found_property[0].destroy
+            deleted.push(property)
           else
-            not_deleted.push(p)
+            not_deleted.push(property)
           end
         else
-          not_deleted.push(p)
+          not_deleted.push(property)
         end
       end
       if not_deleted == []
         render json: {"message": "Properties deleted successfully!",
                       "properties": deleted}
       else
-        render json: {"message": "These properties could not be deleted because they do not exist.",
-                      "properties": not_deleted}
+        render json: {"error": "These properties could not be deleted because they do not exist.",
+                      "properties": not_deleted,
+                      "deleted properties": deleted}
       end
     else
       render json: {error: "No client with id #{params[:client_id]}"}
