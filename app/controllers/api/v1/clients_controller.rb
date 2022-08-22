@@ -29,10 +29,12 @@ class Api::V1::ClientsController < ApplicationController
 
   end 
 
-  def show #MOSTRAR SUS PROPERTIES
+  def show 
     client = Client.select(:id, :name).find_by(id: params[:id])
+    properties = Property.select(:id, :name, :value).where(client_id: params[:id])
     if client
-      render json: client
+      response = {"id": params[:id], "name": client["name"], "properties": properties}
+      render json: response
     else
       render json: {error: "No client with id #{params[:id]}"}
     end
