@@ -23,7 +23,7 @@ class Api::V1::PropertiesController < ApplicationController
       # Create property
       new_property = Property.new(name: property["name"],
                               value: property["value"],
-                              client_id: properties_params[:client_id])   
+                              client_id: params[:client_id])   
       # Try to save property
       if new_property.save
         saved.push(property)
@@ -113,10 +113,9 @@ class Api::V1::PropertiesController < ApplicationController
 private
 
   def properties_params
-    params.require(:property).permit([
+    params.require(:properties).permit([
       :client_id,
-      :name,
-      :value
+      { properties: [:name, :value] }
     ])
   end
 
