@@ -34,15 +34,15 @@ class Api::V1::ClientsController < ApplicationController
     info = Property.joins(:client)
                       .select("client.name as client_name, properties.id, properties.name, properties.value")
                       .where('client.id' => params[:id]) 
-    if info
+    if info != []
       # Build properties array
       properties = []
+      client_name = info[0]["client_name"]
       for property in info do
-        puts property
         properties.push({"id": property["id"], "name": property["name"], "value": property["value"]})
       end
       # Build response
-      response = {"id": params[:id], "name": info[0]["client_name"], "properties": properties}
+      response = {"id": params[:id], "name": client_name, "properties": properties}
       render json: response
     else
       render json: {error: "No client with id #{params[:id]}"}
