@@ -42,9 +42,9 @@ class Api::V1::PropertiesController < ApplicationController
     # Create and save each property
     for property in params[:properties] do
       # Create property
-      # Verify valid type TESTTTTT
+      # Verify valid type
       if ["string", "integer", "boolean"].include? property["type"]
-        # Verify consistence between type and value TESTTTTTT
+        # Verify consistence between type and value
         if consistence_type_value(property["type"], property["value"])
           new_property = Property.new(name: property["name"],
                                   value: property["value"].to_s,

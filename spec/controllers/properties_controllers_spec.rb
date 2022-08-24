@@ -15,13 +15,15 @@ RSpec.describe "Api::PropertiesController", type: :request do
           "id" => property_1.id,
           "client_id" => property_1.client_id,
           "name" => property_1.name,
-          "value" => property_1.value
+          "value" => property_1.value,
+          "type" => property_1.type_value
           },
           {
             "id" => property_2.id,
             "client_id" => property_2.client_id,
             "name" => property_2.name,
-            "value" => property_2.value
+            "value" => property_2.value,
+            "type" => property_2.type_value
             }]
       }
 
@@ -43,7 +45,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
           "id" => property.id,
           "client_id" => property.client_id,
           "name" => property.name,
-          "value" => property.value
+          "value" => property.value,
+          "type" => property.type_value
     }
       get "/api/v1/property/#{property.id}"
 
@@ -66,7 +69,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
           "properties": [
               {
                   "name": property.name,
-                  "value": property.value
+                  "value": property.value,
+                  "type": property.type_value
               }
           ]
       }
@@ -86,7 +90,7 @@ RSpec.describe "Api::PropertiesController", type: :request do
   # Success create properties
   describe "POST /api/v1/properties" do
 
-    it "creates client" do
+    it "creates property" do
       # Create property
       client = create(:client)
       body_request = {
@@ -94,24 +98,28 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": "Example name 1",
-                "value": "Example value 1"
+                "value": "Example value 1",
+                "type": "string"
             },
             {
                 "name": "Example name 2",
-                "value": "Example value 2"
+                "value": true,
+                "type": "boolean"
             }
         ]}
-      post "/api/v1/properties", :params => body_request
+      post "/api/v1/properties", :params => body_request, as: :json
 
       expected_response = {
         "properties" => [
             {
                 "name" => "Example name 1",
-                "value" => "Example value 1"
+                "value" => "Example value 1",
+                "type" => "string"
             },
             {
                 "name" => "Example name 2",
-                "value" => "Example value 2"
+                "value" => true,
+                "type" => "boolean"
             }
         ]
       }
@@ -135,7 +143,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": "Example name 1",
-                "value": "Example value 1"
+                "value": "Example value 1",
+                "type": "string"
             }
         ]}
       post "/api/v1/properties", :params => body_request
@@ -160,7 +169,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": "Example value 1"
+                "value": "Example value 1",
+                "type": "string"
             }
         ]}
       post "/api/v1/properties", :params => body_request
@@ -170,6 +180,54 @@ RSpec.describe "Api::PropertiesController", type: :request do
             property.name => "Name of property has already been used for this Client. Try updating its value."
         }
     ]}
+      expect(JSON.parse(response.body)).to include(expected_response)
+      expect(response).to have_http_status(200)
+    end
+  end
+
+  # Invalid type
+  describe "POST /api/v1/properties" do
+
+    it "invalid type when creating property" do
+      # Create property
+      client = create(:client)
+      body_request = {
+        "client_id": client.id,
+        "properties": [
+            {
+                "name": "Example float",
+                "value": 3.4,
+                "type": "float"
+            }
+        ]}
+      post "/api/v1/properties", :params => body_request, as: :json
+
+      expected_response = { "error" => [{ "Example float"=> "Type must be integer, boolean or string"}]
+      }
+      expect(JSON.parse(response.body)).to include(expected_response)
+      expect(response).to have_http_status(200)
+    end
+  end
+
+  # Inconsistence type/value
+  describe "POST /api/v1/properties" do
+
+    it "detects inconsistency between type and value" do
+      # Create property
+      client = create(:client)
+      body_request = {
+        "client_id": client.id,
+        "properties": [
+            {
+                "name": "Example name 1",
+                "value": 1,
+                "type": "boolean"
+            }
+        ]}
+      post "/api/v1/properties", :params => body_request, as: :json
+
+      expected_response = {"error" => [{"Example name 1"=> "Type is not consistent with value"}]}
+          
       expect(JSON.parse(response.body)).to include(expected_response)
       expect(response).to have_http_status(200)
     end
@@ -187,11 +245,13 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property_1.name,
-                "value": "Change value 1"
+                "value": "Change value 1",
+                "type": property_1.type_value
             },
             {
                 "name": property_2.name,
-                "value": "Change value 2"
+                "value": "Change value 2",
+                "type": property_2.type_value
             }
         ]
     }
@@ -202,11 +262,13 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties" => [
             {
                 "name" => property_1.name,
-                "value" => "Change value 1"
+                "value" => "Change value 1",
+                "type" => property_1.type_value
             },
              {
                 "name" => property_2.name,
-                "value" => "Change value 2"
+                "value" => "Change value 2",
+                "type" => property_2.type_value
             }]}  
 
       expect(JSON.parse(response.body)).to eq(expected_response)
@@ -230,7 +292,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": "Example value 1"
+                "value": "Example value 1",
+                "type": property.type_value
             }
         ]}
       put "/api/v1/properties", :params => body_request
@@ -254,7 +317,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": property.value
+                "value": property.value,
+                "type": property.type_value
             }
         ]
     }
@@ -265,12 +329,13 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": "Example value 1"
+                "value": "Example value 1",
+                "type": property.type_value
             }
         ]}
       put "/api/v1/properties", :params => body_request
 
-      expected_response = { "error" => "These properties could not be updated because they do not exist." }
+      expected_response = { "error" => "These properties could not be updated because they do not exist" }
       expect(JSON.parse(response.body)).to include(expected_response)
       expect(response).to have_http_status(200)
     end
@@ -288,11 +353,13 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property_1.name,
-                "value": property_1.value
+                "value": property_1.value,
+                "type": property_1.type_value
             },
             {
                 "name": property_2.name,
-                "value": property_2.value
+                "value": property_2.value,
+                "type": property_2.type_value
             }
         ]
     }
@@ -301,11 +368,13 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties" => [
             {
                 "name" => property_1.name,
-                "value" => property_1.value
+                "value" => property_1.value,
+                "type" => property_1.type_value
             },
              {
                 "name" => property_2.name,
-                "value" => property_2.value
+                "value" => property_2.value,
+                "type" => property_2.type_value
             }]}  
       
       delete "/api/v1/properties", :params => body_request
@@ -332,7 +401,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": property.value
+                "value": property.value,
+                "type": property.type_value
             }
         ]}
       delete "/api/v1/properties", :params => body_request
@@ -356,7 +426,8 @@ RSpec.describe "Api::PropertiesController", type: :request do
         "properties": [
             {
                 "name": property.name,
-                "value": property.value
+                "value": property.value,
+                "type": property.type_value
             }
         ]
     }

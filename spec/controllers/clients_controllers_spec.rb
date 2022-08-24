@@ -5,7 +5,41 @@ RSpec.describe "Api::ClientsController", type: :request do
   # Success get all clients
   describe "GET /api/v1/clients" do
     it "gets all clients" do
-      get api_v1_clients_path
+      client_1 = create(:client)
+      client_2 = create(:client)
+      property_1 = create(:property, client_id: client_1.id)
+      property_2 = create(:property, client_id: client_2.id)
+      
+      expected_response = {
+        "clients"=> [
+            {
+                "id" => client_1.id,
+                "name" => client_1.name,
+                "properties" => [
+                    {
+                        "name" => property_1.name,
+                        "value" => property_1.value,
+                        "type" => property_1.type_value
+                    }
+                ]
+            },
+            {
+                "id" => client_2.id,
+                "name" => client_2.name,
+                "properties" => [
+                    {
+                        "name" => property_2.name,
+                        "value" => property_2.value,
+                        "type" => property_2.type_value
+                    }
+                ]
+            }
+        ]
+    }
+
+      get "/api/v1/clients"
+
+      expect(JSON.parse(response.body)).to eq(expected_response)
       expect(response).to have_http_status(200)
     end
   end
@@ -23,7 +57,8 @@ RSpec.describe "Api::ClientsController", type: :request do
         "properties" => [{
           "id" => property.id,
           "name" => property.name,
-          "value" => property.value
+          "value" => property.value,
+          "type" => property.type_value
           }]
       }
       get "/api/v1/client/#{client.id}"
