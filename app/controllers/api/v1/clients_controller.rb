@@ -4,11 +4,12 @@ class Api::V1::ClientsController < ApplicationController
     response = []
     # For each client find their properties
     for client in clients do
-      properties = Property.select(:name, :value).where(client_id: client.id)
+      properties = Property.select(:name, :value, :type_value).where(client_id: client.id)
       properties_noid = []
       # Take out property's id to match doc
       for property in properties do
-        properties_noid.push({"name": property["name"], "value": property["value"]})
+        value_official_type = transform_string_to_type(property["type_value"], property["value"])
+        properties_noid.push({"name": property["name"], "value": value_official_type, "type": property["type_value"]})
       end
       # Build up each client and push to response
       client = {"id": client.id, "name": client.name, "properties": properties_noid}
@@ -32,14 +33,19 @@ class Api::V1::ClientsController < ApplicationController
   def show 
     # Query to find properties of the client
     info = Property.joins(:client)
-                      .select("client.name as client_name, properties.id, properties.name, properties.value")
+                      .select("client.name as client_name,
+                              properties.id, properties.name,
+                              properties.value, properties.type_value")
                       .where('client.id' => params[:id]) 
     if info != []
       # Build properties array
       properties = []
       client_name = info[0]["client_name"]
       for property in info do
-        properties.push({"id": property["id"], "name": property["name"], "value": property["value"]})
+        puts "helpoooo"
+        puts property["type_value"]
+        value_official_type = transform_string_to_type(property["type_value"], property["value"])
+        properties.push({"id": property["id"], "name": property["name"], "value": value_official_type, "type": property["type_value"]})
       end
       # Build response
       response = {"id": params[:id], "name": client_name, "properties": properties}
@@ -89,5 +95,21 @@ private
   def find_client
     Client.find_by(id: params[:id])
   end
+
+  def transform_string_to_type(type, value)
+    if type == "string"
+      new_value = value.to_s
+    elsif type == "integer"
+      new_value = value.to_i
+    elsif type == "boolean"
+      if type == "true"
+        new_value = true
+      else
+        new_value = false
+      end
+    end
+    return new_value
+  end
+
 end
 

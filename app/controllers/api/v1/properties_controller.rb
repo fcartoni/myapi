@@ -1,14 +1,35 @@
 class Api::V1::PropertiesController < ApplicationController
   def index
-    properties = Property.select(:id, :client_id, :name, :value).all
-    render json: {properties: properties}
+    properties = Property.select(:id, :client_id, :name, :value, :type_value).all
+    response = []
+    for property in properties do
+      value_official_type = transform_string_to_type(property["type_value"], property["value"])
+      response.push({
+        "id": property["id"],
+        "client_id": property["client_id"],
+        "name": property["name"],
+        "value": value_official_type,
+        "type": property["type_value"]
+    })
+    end
+
+    render json: {properties: response}
   end
 
   def show
     property = find_property
     # Verify property's existence
     if property
-      render json: property
+      # Change value to official type to show it
+      value_official_type = transform_string_to_type(property["type_value"], property["value"])
+      response = {
+        "id": property["id"],
+        "client_id": property["client_id"],
+        "name": property["name"],
+        "value": value_official_type,
+        "type": property["type_value"]
+    }
+      render json: response
     else
       render json: {error: "No property with id #{params[:id]}"}
     end
@@ -21,21 +42,34 @@ class Api::V1::PropertiesController < ApplicationController
     # Create and save each property
     for property in params[:properties] do
       # Create property
-      new_property = Property.new(name: property["name"],
-                              value: property["value"],
-                              client_id: params[:client_id])   
-      # Try to save property
-      if new_property.save
-        saved.push(property)
-      # Verify client's existence
-      elsif not find_client
-        render json: {error: new_property.errors.objects.first.full_message }
-        return
-      # Error saving property: duplicates, etc.
-      else 
-        errors = {property["name"] => new_property.errors.objects.first.full_message }
-        not_saved.push(errors)
+      # Verify valid type TESTTTTT
+      if ["string", "integer", "boolean"].include? property["type"]
+        # Verify consistence between type and value TESTTTTTT
+        if consistence_type_value(property["type"], property["value"])
+          new_property = Property.new(name: property["name"],
+                                  value: property["value"].to_s,
+                                  client_id: params[:client_id],
+                                  type_value: property["type"])   
+          # Try to save property
+          if new_property.save
+            saved.push(property)
+          # Verify client's existence
+          elsif not find_client
+            render json: {error: new_property.errors.objects.first.full_message }
+            return
+          # Error saving property: duplicates, etc.
+          else 
+            errors = {property["name"] => new_property.errors.objects.first.full_message }
+            not_saved.push(errors)
+          end
+        else 
+          not_saved.push({property["name"] => "Type is not consistent with value"})
+        end
+
+      else
+        not_saved.push({property["name"] => "Type must be integer, boolean or string"})
       end
+
     end
 
     if not_saved == []
@@ -53,10 +87,13 @@ class Api::V1::PropertiesController < ApplicationController
     if find_client
       for property in params[:properties] do
         # Verify existence of property
-        found_property = Property.where(name: property["name"], client_id: params[:client_id])
+        found_property = Property.where(name: property["name"],
+                                        client_id: params[:client_id],
+                                        type_value: property["type"])
         if found_property != []
           # Try updating property
-          if found_property.update(value: property["value"])
+          new_value = property["value"].to_s
+          if found_property.update(value: new_value)
             changed.push(property)
           else
             unchanged.push(property)
@@ -65,11 +102,12 @@ class Api::V1::PropertiesController < ApplicationController
           unchanged.push(property)
         end
       end
+
       if unchanged == []
         render json: {"message": "Properties updated successfully!",
                       "properties": changed}
       else
-        render json: {"error": "These properties could not be updated because they do not exist.",
+        render json: {"error": "These properties could not be updated because they do not exist",
                       "properties": unchanged,
                     "updated properties": changed}
       end
@@ -85,7 +123,7 @@ class Api::V1::PropertiesController < ApplicationController
     if find_client
       for property in params[:properties] do
         # Verify existence of property
-        found_property = Property.where(name: property["name"], client_id: params[:client_id])
+        found_property = Property.where(name: property["name"], client_id: params[:client_id], type_value: property["type"])
         if found_property != []
           # Try deleting it
           if found_property[0].destroy
@@ -124,7 +162,39 @@ private
   end
 
   def find_property
-    Property.select(:id, :client_id, :name, :value).find_by(id: params[:id])
+    Property.select(:id, :client_id, :name, :value, :type_value).find_by(id: params[:id])
+  end
+
+  def consistence_type_value(type, value)
+    dict = {'string': String, 'integer': Integer}
+    if type == "boolean"
+      if value.class == TrueClass || value.class == FalseClass
+        return true
+      else
+        return false
+      end
+    elsif type == "integer" && value.class == Integer
+      return true
+    elsif type == "string" && value.class == String
+      return true
+    else
+      return false
+    end
+  end
+
+  def transform_string_to_type(type, value)
+    if type == "string"
+      new_value = value.to_s
+    elsif type == "integer"
+      new_value = value.to_i
+    elsif type == "boolean"
+      if type == "true"
+        new_value = true
+      else
+        new_value = false
+      end
+    end
+    return new_value
   end
 
 end

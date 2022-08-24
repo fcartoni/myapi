@@ -7,7 +7,7 @@
   end
 
 10.times do |i|
-    Property.create(name: "address", value: "Calle #{i+1}", client_id: i+1)
-    Property.create(name: "country", value: "Pais #{i+1}", client_id: i+1)
-    Property.create(name: "postal code", value: "#{i+1}00000", client_id: i+1)
+    Property.create(name: "address", value: "Calle #{i+1}", client_id: i+1, type_value: "string")
+    Property.create(name: "country", value: "Pais #{i+1}", client_id: i+1, type_value: "string")
+    Property.create(name: "postal code", value: "#{i+1}", client_id: i+1, type_value: "integer")
 end
