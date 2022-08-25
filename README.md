@@ -4,6 +4,7 @@
 
 * Ruby version: 3.1.2
 * Rails version: 7.0.3.1
+* PostgreSQL version: 14.5
 
 ## Development Setup
 
@@ -14,7 +15,7 @@
 5. Correr migraciones: rails db:migrate
 6. Poblar base de datos: rails db:seed
 7. Correr la API: rails s
-8. Listo! Ya se pueden mandar requests.
+8. Listo! Ya se pueden mandar requests (ver documentaciones más abajo)
 
 ## Run tests:
 
